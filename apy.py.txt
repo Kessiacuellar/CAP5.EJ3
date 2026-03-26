@@ -1,0 +1,104 @@
+import streamlit as st
+import math
+
+st.set_page_config(page_title="Diseño Inverso M/M/1", layout="centered")
+
+st.title("📊 Diseño Inverso de Capacidad – Modelo M/M/1")
+
+st.markdown("""
+Esta aplicación calcula la **tasa mínima de servicio (μ)** necesaria para cumplir
+un estándar máximo de espera promedio en cola (Wq).
+Modelo utilizado: Sistema M/M/1.
+""")
+
+st.divider()
+
+# -----------------------------
+# INPUTS
+# -----------------------------
+
+lambda_rate = st.number_input(
+    "Tasa de llegada λ (clientes por hora):",
+    min_value=0.1,
+    value=30.0,
+    step=1.0
+)
+
+wq_minutes = st.number_input(
+    "Tiempo máximo promedio permitido en cola (minutos):",
+    min_value=0.1,
+    value=2.0,
+    step=0.1
+)
+
+# Convertimos a horas
+wq_hours = wq_minutes / 60
+
+st.divider()
+
+if st.button("Calcular Capacidad Mínima"):
+
+    # -----------------------------
+    # CÁLCULO DE μ MÍNIMA
+    # -----------------------------
+    
+    discriminant = lambda_rate**2 + 4 * lambda_rate / wq_hours
+    mu_min = (lambda_rate + math.sqrt(discriminant)) / 2
+    
+    # Se redondea hacia arriba para diseño práctico
+    mu_practica = math.ceil(mu_min)
+    
+    # -----------------------------
+    # INDICADORES CON μ PRÁCTICA
+    # -----------------------------
+    
+    rho = lambda_rate / mu_practica
+    Lq = (lambda_rate**2) / (mu_practica * (mu_practica - lambda_rate))
+    L = lambda_rate / (mu_practica - lambda_rate)
+    Wq = Lq / lambda_rate
+    W = L / lambda_rate
+    
+    # -----------------------------
+    # RESULTADOS
+    # -----------------------------
+    
+    st.subheader("🔎 Resultados de Diseño")
+    
+    st.write(f"**μ mínima teórica requerida:** {mu_min:.4f} clientes/hora")
+    st.write(f"**μ práctica recomendada (redondeada):** {mu_practica} clientes/hora")
+    
+    st.divider()
+    
+    st.subheader("📈 Indicadores del Sistema con μ práctica")
+    
+    st.write(f"Utilización (ρ): {rho:.4f}")
+    st.write(f"Número promedio en cola (Lq): {Lq:.4f} clientes")
+    st.write(f"Número promedio en el sistema (L): {L:.4f} clientes")
+    st.write(f"Tiempo promedio en cola (Wq): {Wq*60:.4f} minutos")
+    st.write(f"Tiempo promedio total en el sistema (W): {W*60:.4f} minutos")
+    
+    st.divider()
+    
+    # -----------------------------
+    # VALIDACIÓN DEL ESTÁNDAR
+    # -----------------------------
+    
+    if Wq*60 <= wq_minutes:
+        st.success("✅ El estándar de tiempo de espera SE CUMPLE.")
+    else:
+        st.error("❌ El estándar NO se cumple.")
+    
+    st.divider()
+    
+    st.subheader("📌 Interpretación Gerencial")
+    
+    st.markdown(f"""
+- El sistema requiere una capacidad mínima de **{mu_practica} clientes por hora**.
+- La utilización resultante es **{rho:.2%}**, lo que indica un sistema con margen operativo saludable.
+- El tiempo promedio total en el sistema es de **{W*60:.2f} minutos**.
+    
+Conclusión estratégica:
+Para garantizar un estándar exigente de servicio, la empresa debe diseñar capacidad
+con un colchón suficiente entre λ y μ. Diseñar solo ligeramente por encima de λ
+generaría alta congestión y tiempos explosivos de espera.
+""")
